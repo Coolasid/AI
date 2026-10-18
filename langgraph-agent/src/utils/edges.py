@@ -9,7 +9,7 @@ load_dotenv()
 
 
 # conditional edges
-def should_continue(state: GenerateAnalystsState):
+def should_continue(state: GenerateAnalystsState) -> Literal["create_analysts", "__end__"]:
     """Return the next node to excute"""
 
     human_analyst_feedback = state.get('human_analyst_feedback', None)
@@ -17,7 +17,7 @@ def should_continue(state: GenerateAnalystsState):
     if human_analyst_feedback:
         return 'create_analysts'
 
-    return END
+    return "__end__"
 
 
     
