@@ -1,10 +1,11 @@
 from dotenv import load_dotenv
 from .states import GenerateAnalystsState, InteriewState
 from .models import llm
-from .objects import Analyst, Perspective
-from .prompts import analyst_instructions, question_instructions
+from .objects import Analyst, Perspective, SearchQuery
+from .prompts import analyst_instructions, question_instructions, search_instructions
 from langchain.messages import SystemMessage, HumanMessage
 from langgraph.types import interrupt
+from langchain_tavily import TavilySearch
 
 load_dotenv()
 
@@ -76,4 +77,32 @@ def generate_question(state: InteriewState):
     question = llm.invoke([SystemMessage(content=system_message)]+messages)
 
     return {"messages": [question]}
+
+
+def search_web(state: InteriewState):
+    """Retrive docs from the web"""
+
+    # Search query
+    structured_llm = llm.with_structured_output(SearchQuery)
+
+    # Search instruction
+    system_instruction_system_message = SystemMessage(content=search_instructions)
+
+    tavily_search = TavilySearch(max_result=3)
+
+    search_query = structured_llm.invoke([system_instruction_system_message] + state["messages"])
+
+    # search
+    data = tavily_search.invoke({"query": search_query["search_query"]})
+    search_docs = data.get("results", data)
+
+    # format
+    formatted_search_docs = "\n\n---\n\n".join(
+        [
+            f'<Document href="{doc["url"]}"/>\n{doc["content"]}\n</Document>'
+            for doc in search_docs
+        ]
+    )
+
+    return {"context": [formatted_search_docs]}
 
